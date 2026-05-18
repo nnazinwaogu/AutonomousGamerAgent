@@ -1,0 +1,33 @@
+{
+  "name": "explorers-quest-agent",
+  "version": "1.0.0",
+  "description": "A text-based adventure game agent built with the OpenRouter Agent SDK that autonomously explores, collects items, solves puzzles, and reaches the treasure chamber goal.",
+  "main": "src/main.ts",
+  "scripts": {
+    "start": "ts-node src/main.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "dev": "ts-node src/main.ts"
+  },
+  "keywords": [
+    "openrouter",
+    "agent-sdk",
+    "llm",
+    "text-adventure",
+    "game-agent",
+    "typescript"
+  ],
+  "author": "OpenRouter Agent SDK Explorer",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@openrouter/agent": "^0.6.0",
+    "dotenv": "^17.4.2",
+    "typescript": "^6.0.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.8.0",
+    "ts-node": "^10.9.2"
+  }
+}
