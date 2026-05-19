@@ -35,6 +35,7 @@ This project demonstrates:
 - 🔧 Tool-based architecture for reliable agent actions
 - 📊 Configurable stop conditions (step count, cost limits)
 - 📝 Detailed logging and journey tracking
+- 📈 Built-in telemetry: Monitor execution time, tool usage, and token consumption
 - 🏆 Clear win condition and victory celebration
 
 ## Project Structure
@@ -116,6 +117,12 @@ The agent will:
   - LLM decides which tool to call based on current context
   - SDK executes tool and feeds results back to LLM
   - Process repeats until goal reached or stop condition triggered
+- **Telemetry Collection**: 
+  - Execution timing with process.hrtime.bigint() for precision
+  - Token usage extracted from SDK response via getResponse()
+  - Tool usage collected from getToolCallsStream() for reliability
+  - Cost estimation based on standard rates (configurable)
+  - Automatic reporting displayed after agent completion
 
 ### Decision Making Process
 1. **Observation**: Agent receives game state through tool results and system prompt
@@ -156,6 +163,14 @@ You are now standing in a small chamber filled with glittering treasure - gold c
 🎉 VICTORY! You have reached the Treasure Chamber! 🎉
 Thanks for playing Explorer's Quest!
 
+=== Telemetry Report ===
+Execution Time: 14.2ms
+Total Steps: 1
+Token Usage: 2,452 input, 219 output (2,671 total)
+Estimated Cost: $0.000499
+Tool Usage:
+  look: 1
+
 Agent execution completed.
 ```
 
@@ -167,6 +182,13 @@ Agent execution completed.
 - **Stop Conditions**: Built-in helpers (`stepCountIs`, `maxCost`)
 - **Conversation State**: Automatically managed by SDK (message history, tool results)
 - **Model Used**: `nvidia/nemotron-3-super-120b-a12b:free` (NVIDIA's open-source model)
+
+### Telemetry and Monitoring
+- **Execution Timing**: High-precision timing using process.hrtime
+- **Token Tracking**: Input/output token counts from SDK response
+- **Tool Analytics**: Frequency tracking of all agent actions (move, take_item, examine_item, etc.)
+- **Cost Estimation**: Approximate API cost calculation based on token usage
+- **Automatic Reporting**: Telemetry displayed after each agent run
 
 ### Game Mechanics
 - **World**: 4 interconnected rooms with distinct descriptions

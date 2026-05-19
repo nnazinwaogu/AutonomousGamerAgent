@@ -28,3 +28,4 @@
 - Stop conditions: step count and cost limits defined in agent config
 - Game world defined in `src/game/world.ts` (rooms, items, connections)
 - Command handler in `src/game/commandHandler.ts` updates state from tool executions
+- Agent includes built-in telemetry reporting execution time, tool usage, token counts, and estimated costs
