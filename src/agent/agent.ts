@@ -10,6 +10,26 @@ const openrouter = new OpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
+// Base instructions for the agent
+const baseInstructions = `You are an AI agent playing a text-based adventure game called "Explorer's Quest".
+        Your goal is to explore the world, collect items, solve puzzles, and reach the treasure chamber.
+
+        You will receive information about your surroundings through tool results. Use this information
+        to make decisions about what actions to take next.
+
+        Available actions you can take:
+        - Move between rooms using the move tool (directions: north, south, east, west)
+        - Take items from rooms using the take_item tool
+        - Examine items in your inventory or room using the examine_item tool
+        - Check what you're carrying using the inventory tool
+        - Look at your current surroundings using the look tool
+        - Use items from your inventory using the use_item tool
+        - Get help using the help tool
+
+        Think step-by-step about your goals and what actions will help you achieve them.
+        Try to explore systematically and remember what you've seen in each room.
+        The ultimate goal is to reach the Treasure Chamber.`;
+
 // Define game-specific tools for the agent
 
 // Move tool: Handle navigation between rooms
@@ -143,24 +163,7 @@ export const agentConfig = {
   messages: [
     {
       role: 'system',
-      content: `You are an AI agent playing a text-based adventure game called "Explorer's Quest".
-        Your goal is to explore the world, collect items, solve puzzles, and reach the treasure chamber.
-        
-        You will receive information about your surroundings through tool results. Use this information
-        to make decisions about what actions to take next.
-        
-        Available actions you can take:
-        - Move between rooms using the move tool (directions: north, south, east, west)
-        - Take items from rooms using the take_item tool
-        - Examine items in your inventory or room using the examine_item tool
-        - Check what you're carrying using the inventory tool
-        - Look at your current surroundings using the look tool
-        - Use items from your inventory using the use_item tool
-        - Get help using the help tool
-        
-        Think step-by-step about your goals and what actions will help you achieve them.
-        Try to explore systematically and remember what you've seen in each room.
-        The ultimate goal is to reach the Treasure Chamber.`
+      content: baseInstructions
     }
   ],
   tools: [
@@ -186,46 +189,14 @@ export const runAgent = async () => {
   // Instrument execution timing
   const startTime = process.hrtime.bigint();
   
-  // Note: In a real application, you would need to set the API key
-  // const openrouter = new OpenRouter({ apiKey: process.env.OPENROUTER_API_KEY });
-  // For this example, we'll proceed without it to demonstrate the structure
-  
-   // Define tools array for reuse
-   const tools = [
-     moveTool,
-     takeItemTool,
-     examineItemTool,
-     inventoryTool,
-     lookTool,
-     useItemTool,
-     helpTool
-   ];
-   
    const result = await openrouter.callModel({
      model: 'nvidia/nemotron-3-super-120b-a12b:free',
-     instructions: `You are an AI agent playing a text-based adventure game called "Explorer's Quest".
-         Your goal is to explore the world, collect items, solve puzzles, and reach the treasure chamber.
-         
+     instructions: `${baseInstructions}
+
          You MUST use the available tools to interact with the game world to progress and win.
-         Think of each tool as an action you can take in the game.
-         
-         You will receive information about your surroundings through tool results. Use this information
-         to make decisions about what actions to take next.
-         
-         Available actions you can take:
-         - Move between rooms using the move tool (directions: north, south, east, west)
-         - Take items from rooms using the take_item tool
-         - Examine items in your inventory or room using the examine_item tool
-         - Check what you're carrying using the inventory tool
-         - Look at your current surroundings using the look tool
-         - Use items from your inventory using the use_item tool
-         - Get help using the help tool
-         
-         Think step-by-step about your goals and what actions will help you achieve them.
-         Try to explore systematically and remember what you've seen in each room.
-         The ultimate goal is to reach the Treasure Chamber.`,
+         Think of each tool as an action you can take in the game.`,
      input: [], // Empty input array as we're starting fresh
-     tools: tools,
+     tools: agentConfig.tools,
      stopWhen: [
        stepCountIs(50), // Prevent infinite loops
        maxCost(0.50)    // Limit cost to reasonable amount
@@ -239,16 +210,13 @@ export const runAgent = async () => {
    const response = await result.getResponse();
    const usage = response.usage ?? { inputTokens: 0, outputTokens: 0 };
    
-   // Collect tool calls from stream (more reliable than getToolCalls() immediately after)
-   let toolCalls = [];
+   // Collect tool calls from stream and calculate usage directly to avoid intermediate array
+   let totalSteps = 0;
+   const toolUsage = {} as Record<string, number>;
    for await (const toolCall of result.getToolCallsStream()) {
-     toolCalls.push(toolCall);
+     totalSteps++;
+     toolUsage[toolCall.name] = (toolUsage[toolCall.name] || 0) + 1;
    }
-   
-   const toolUsage = toolCalls.reduce((acc, call) => {
-     acc[call.name] = (acc[call.name] || 0) + 1;
-     return acc;
-   }, {} as Record<string, number>);
    
    // Simple cost model (would need refinement per model)
    const INPUT_COST_PER_1K = 0.00015;  // Example rate
@@ -265,7 +233,7 @@ export const runAgent = async () => {
    // Display telemetry report
    console.log('\n=== Telemetry Report ===');
    console.log(`Execution Time: ${durationMs.toFixed(1)}ms`);
-   console.log(`Total Steps: ${toolCalls.length}`);
+   console.log(`Total Steps: ${totalSteps}`);
    console.log(`Token Usage: ${usage.inputTokens.toLocaleString()} input, ${usage.outputTokens.toLocaleString()} output (${(usage.inputTokens + usage.outputTokens).toLocaleString()} total)`);
    console.log(`Estimated Cost: $${totalCost.toFixed(6)}`);
    console.log('Tool Usage:');
