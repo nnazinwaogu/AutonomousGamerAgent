@@ -8,6 +8,13 @@ All notable changes to this project will be documented in this file.
 - Tool-based architecture for reliable agent actions
 - Integration with nvidia/nemotron-3-super-120b-a12b:free model
 
+## [1.0.1] - 2026-05-21
+### Fixed
+- Telemetry implementation: reordered tool calls collection to occur before response consumption
+- Code duplication: extracted base instructions constant and use agentConfig.tools instead of recreating tools array
+- Dead code: removed commented-out duplicate openrouter initialization
+- Tool usage calculation: optimized to avoid intermediate array by counting during stream iteration
+
 ## [1.0.0] - 2026-05-19
 ### Added
 - Initial commit of Explorer's Quest LLM-driven game agent

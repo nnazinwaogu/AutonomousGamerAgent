@@ -202,21 +202,23 @@ export const runAgent = async () => {
        maxCost(0.50)    // Limit cost to reasonable amount
      ]
    });
-   
+
    // Extract telemetry data
    const endTime = process.hrtime.bigint();
    const durationMs = Number(endTime - startTime) / 1_000_000;
-   
-   const response = await result.getResponse();
-   const usage = response.usage ?? { inputTokens: 0, outputTokens: 0 };
-   
-   // Collect tool calls from stream and calculate usage directly to avoid intermediate array
+
+   // Collect tool calls from stream FIRST (before consuming response)
    let totalSteps = 0;
    const toolUsage = {} as Record<string, number>;
    for await (const toolCall of result.getToolCallsStream()) {
      totalSteps++;
      toolUsage[toolCall.name] = (toolUsage[toolCall.name] || 0) + 1;
    }
+
+   // Now get response data
+   const response = await result.getResponse();
+   const usage = response.usage ?? { inputTokens: 0, outputTokens: 0 };
+   const responseText = await result.getText();
    
    // Simple cost model (would need refinement per model)
    const INPUT_COST_PER_1K = 0.00015;  // Example rate
@@ -226,7 +228,6 @@ export const runAgent = async () => {
    const outputCost = (usage.outputTokens / 1000) * OUTPUT_COST_PER_1K;
    const totalCost = inputCost + outputCost;
   
-   const responseText = await result.getText();
    console.log('\nAgent Response:');
    console.log(responseText);
    
