@@ -23,9 +23,9 @@
 - (Test commands to be added when test framework is selected)
 
 ## Architecture Notes
-- Agent uses OpenRouter SDK's `callModel` for automatic multi-turn loops
+- Agent uses OpenRouter SDK's `callModel` for automatic multi-turn loops (callModel is synchronous; the agent loop runs lazily inside getResponse()/getItemsStream())
 - Conversation state managed by SDK (message history, tool results)
 - Stop conditions: step count and cost limits defined in agent config
 - Game world defined in `src/game/world.ts` (rooms, items, connections)
 - Command handler in `src/game/commandHandler.ts` updates state from tool executions
-- Agent includes built-in telemetry reporting execution time, tool usage, token counts, and estimated costs
+- Agent includes built-in telemetry reporting execution time (seconds), tool call counts, token counts, and SDK-provided cost
