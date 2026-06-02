@@ -118,10 +118,10 @@ The agent will:
   - SDK executes tool and feeds results back to LLM
   - Process repeats until goal reached or stop condition triggered
 - **Telemetry Collection**: 
-  - Execution timing with process.hrtime.bigint() for precision
-  - Token usage extracted from SDK response via getResponse()
-  - Tool usage collected from getToolCallsStream() for reliability
-  - Cost estimation based on standard rates (configurable)
+  - Execution timing with process.hrtime.bigint() for precision (displayed in seconds)
+  - Token usage extracted from SDK response via getResponse(), including SDK-calculated cost
+  - Tool usage collected from getItemsStream() tracking function_call items across all turns
+  - Cost displayed as SDK-provided actual cost, or N/A when unavailable
   - Automatic reporting displayed after agent completion
 
 ### Decision Making Process
@@ -164,12 +164,15 @@ You are now standing in a small chamber filled with glittering treasure - gold c
 Thanks for playing Explorer's Quest!
 
 === Telemetry Report ===
-Execution Time: 14.2ms
-Total Steps: 1
+Execution Time: 3.75s
+Total Tool Calls: 6
 Token Usage: 2,452 input, 219 output (2,671 total)
-Estimated Cost: $0.000499
+Cost: $0.000499
 Tool Usage:
-  look: 1
+  look: 2
+  move: 2
+  take_item: 1
+  use_item: 1
 
 Agent execution completed.
 ```
@@ -184,10 +187,11 @@ Agent execution completed.
 - **Model Used**: `nvidia/nemotron-3-super-120b-a12b:free` (NVIDIA's open-source model)
 
 ### Telemetry and Monitoring
-- **Execution Timing**: High-precision timing using process.hrtime
+- **Execution Timing**: High-precision timing using process.hrtime (displayed in seconds)
 - **Token Tracking**: Input/output token counts from SDK response
-- **Tool Analytics**: Frequency tracking of all agent actions (move, take_item, examine_item, etc.)
-- **Cost Estimation**: Approximate API cost calculation based on token usage
+- **Tool Analytics**: Frequency tracking of all agent actions via getItemsStream() across all turns
+- **Cost**: SDK-provided actual cost, or N/A when unavailable
+- **Tool Call Count**: Accurate counting of individual tool calls (not SDK turns)
 - **Automatic Reporting**: Telemetry displayed after each agent run
 
 ### Game Mechanics

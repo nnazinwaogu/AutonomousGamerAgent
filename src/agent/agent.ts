@@ -178,75 +178,73 @@ export const agentConfig = {
   stopWhen: [
     stepCountIs(50), // Prevent infinite loops
     maxCost(0.50)    // Limit cost to reasonable amount
-  ]
+  ],
 };
 
 // Function to run the agent
 export const runAgent = async () => {
   console.log('Starting Explorer\'s Quest AI Agent...');
   console.log('='.repeat(50));
-  
-  // Instrument execution timing
+
+  const result = openrouter.callModel({
+    model: 'nvidia/nemotron-3-super-120b-a12b:free',
+    instructions: `${baseInstructions}
+
+        You MUST use the available tools to interact with the game world to progress and win.
+        Think of each tool as an action you can take in the game.`,
+    input: [],
+    tools: agentConfig.tools,
+    stopWhen: agentConfig.stopWhen
+  });
+
+  // Instrument execution timing — wrapped around getResponse() which
+  // is where the actual multi-turn agent loop runs (callModel is synchronous)
   const startTime = process.hrtime.bigint();
-  
-   const result = await openrouter.callModel({
-     model: 'nvidia/nemotron-3-super-120b-a12b:free',
-     instructions: `${baseInstructions}
 
-         You MUST use the available tools to interact with the game world to progress and win.
-         Think of each tool as an action you can take in the game.`,
-     input: [], // Empty input array as we're starting fresh
-     tools: agentConfig.tools,
-     stopWhen: [
-       stepCountIs(50), // Prevent infinite loops
-       maxCost(0.50)    // Limit cost to reasonable amount
-     ]
-   });
+  // Track tool calls across ALL agent turns via items stream
+  let totalToolCalls = 0;
+  const toolUsage = {} as Record<string, number>;
+  for await (const item of result.getItemsStream()) {
+    if (item.type === 'function_call') {
+      totalToolCalls++;
+      toolUsage[item.name] = (toolUsage[item.name] || 0) + 1;
+    }
+  }
 
-   // Extract telemetry data
-   const endTime = process.hrtime.bigint();
-   const durationMs = Number(endTime - startTime) / 1_000_000;
+  // Get response data (cached from agent loop that ran during items stream)
+  const response = await result.getResponse();
+  const endTime = process.hrtime.bigint();
+  const durationSec = Number(endTime - startTime) / 1_000_000_000;
+  const usage = response.usage;
+  const responseText = await result.getText();
 
-   // Collect tool calls from stream FIRST (before consuming response)
-   let totalSteps = 0;
-   const toolUsage = {} as Record<string, number>;
-   for await (const toolCall of result.getToolCallsStream()) {
-     totalSteps++;
-     toolUsage[toolCall.name] = (toolUsage[toolCall.name] || 0) + 1;
-   }
+   // Use SDK-provided cost when available
 
-   // Now get response data
-   const response = await result.getResponse();
-   const usage = response.usage ?? { inputTokens: 0, outputTokens: 0 };
-   const responseText = await result.getText();
-   
-   // Simple cost model (would need refinement per model)
-   const INPUT_COST_PER_1K = 0.00015;  // Example rate
-   const OUTPUT_COST_PER_1K = 0.0006;  // Example rate
-   
-   const inputCost = (usage.inputTokens / 1000) * INPUT_COST_PER_1K;
-   const outputCost = (usage.outputTokens / 1000) * OUTPUT_COST_PER_1K;
-   const totalCost = inputCost + outputCost;
-  
-   console.log('\nAgent Response:');
-   console.log(responseText);
-   
-   // Display telemetry report
-   console.log('\n=== Telemetry Report ===');
-   console.log(`Execution Time: ${durationMs.toFixed(1)}ms`);
-   console.log(`Total Steps: ${totalSteps}`);
-   console.log(`Token Usage: ${usage.inputTokens.toLocaleString()} input, ${usage.outputTokens.toLocaleString()} output (${(usage.inputTokens + usage.outputTokens).toLocaleString()} total)`);
-   console.log(`Estimated Cost: $${totalCost.toFixed(6)}`);
-   console.log('Tool Usage:');
-   if (Object.keys(toolUsage).length === 0) {
-     console.log('  No tool calls recorded');
-   } else {
-     Object.entries(toolUsage).forEach(([tool, count]) => {
-       console.log(`  ${tool}: ${count}`);
-     });
-   }
-   
-   // Check if we won
+  console.log('\nAgent Response:');
+  console.log(responseText);
+
+  // Display telemetry report
+  console.log('\n=== Telemetry Report ===');
+  console.log(`Execution Time: ${durationSec.toFixed(2)}s`);
+  console.log(`Total Tool Calls: ${totalToolCalls}`);
+  if (usage) {
+    console.log(`Token Usage: ${usage.inputTokens.toLocaleString()} input, ${usage.outputTokens.toLocaleString()} output (${usage.totalTokens.toLocaleString()} total)`);
+    const displayCost = usage.cost != null ? `$${usage.cost.toFixed(6)}` : 'N/A';
+    console.log(`Cost: ${displayCost}`);
+  } else {
+    console.log('Token Usage: N/A');
+    console.log('Cost: N/A');
+  }
+  console.log('Tool Usage:');
+  if (Object.keys(toolUsage).length === 0) {
+    console.log('  No tool calls recorded');
+  } else {
+    Object.entries(toolUsage).forEach(([tool, count]) => {
+      console.log(`  ${tool}: ${count}`);
+    });
+  }
+
+  // Check if we won
   const state = gameEngine.getState();
   if (state.currentLocation === 'treasure') {
     console.log('\n🎉 VICTORY! You have reached the Treasure Chamber! 🎉');

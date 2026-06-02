@@ -3,10 +3,16 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-- Initial project setup with OpenRouter Agent SDK
-- Text-based adventure game "Explorer's Quest"
-- Tool-based architecture for reliable agent actions
-- Integration with nvidia/nemotron-3-super-120b-a12b:free model
+### Fixed
+- Telemetry timing: moved timing to wrap getResponse() instead of callModel() — callModel() is synchronous, so the timer was only measuring ModelResult construction (~17ms), not the actual agent loop
+- Telemetry tool tracking: replaced getToolCallsStream() with getItemsStream() — getToolCallsStream() only yields from the initial response turn, silently missing multi-turn tool calls
+- Telemetry cost: removed hardcoded manual cost estimation with example rates; uses SDK-provided usage.cost (actual cost) when available, displays N/A when absent
+- Telemetry fallback: removed `?? { inputTokens: 0, outputTokens: 0 }` fallback that displayed misleading zeros; now shows N/A when usage data is unavailable
+- Telemetry labeling: renamed "Total Steps" to "Total Tool Calls" — was counting individual tool calls but labeled as SDK steps (which count turns, where one turn can produce multiple tool calls)
+- Deduplication: removed redundant inline stopWhen array from callModel() and referenced agentConfig.stopWhen instead
+
+### Changed
+- Execution Time unit from milliseconds to seconds for better readability with longer agent runs
 
 ## [1.0.1] - 2026-05-21
 ### Fixed
