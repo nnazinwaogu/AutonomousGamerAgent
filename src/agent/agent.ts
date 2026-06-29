@@ -5,30 +5,47 @@ import { gameEngine } from '../game/engine';
 
 // Create OpenRouter instance (in a real app, you'd get API key from env)
 require('dotenv').config();
-// console.log('API Key from env:', process.env.OPENROUTER_API_KEY ? 'Set' : 'Not set');
 const openrouter = new OpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
 // Base instructions for the agent
 const baseInstructions = `You are an AI agent playing a text-based adventure game called "Explorer's Quest".
-        Your goal is to explore the world, collect items, solve puzzles, and reach the treasure chamber.
+Your goal is to explore the world, collect items, solve puzzles, and reach the treasure chamber.
 
-        You will receive information about your surroundings through tool results. Use this information
-        to make decisions about what actions to take next.
+You will receive information about your surroundings through tool results. Use this information
+to make decisions about what actions to take next.
 
-        Available actions you can take:
-        - Move between rooms using the move tool (directions: north, south, east, west)
-        - Take items from rooms using the take_item tool
-        - Examine items in your inventory or room using the examine_item tool
-        - Check what you're carrying using the inventory tool
-        - Look at your current surroundings using the look tool
-        - Use items from your inventory using the use_item tool
-        - Get help using the help tool
+Available actions you can take:
+- Move between rooms using the move tool (directions: north, south, east, west)
+- Take items from rooms using the take_item tool
+- Examine items in your inventory or room using the examine_item tool
+- Check what you're carrying using the inventory tool
+- Look at your current surroundings using the look tool
+- Use items from your inventory using the use_item tool
+- Combine two items together using the combine_items tool
+- Get help using the help tool
 
-        Think step-by-step about your goals and what actions will help you achieve them.
-        Try to explore systematically and remember what you've seen in each room.
-        The ultimate goal is to reach the Treasure Chamber.`;
+You MUST use the available tools to interact with the game world to progress and win.
+Think of each tool as an action you can take in the game.
+
+IMPORTANT: To combine items, use the combine_items tool with the two item names (item IDs, not the display names). The item IDs are: map, key, lantern, ancient_coin, crystal_gem, silver_amulet.
+
+THE WORLD:
+You start in a Forest Clearing. To the north is a Dark Cave, to the east is an Old Cabin.
+- The Old Cabin has a garden to its north, which leads east to ancient Ruins.
+- The Dark Cave connects to an Underground Lake to the west.
+- Beyond the Underground Lake is a Sealed Passage leading to the Treasure Chamber.
+
+PUZZLES TO SOLVE:
+1. The cave is too dark to explore — you'll need to light the Brass Lantern to see the western passage.
+2. The Underground Lake has a locked iron gate — the Rusty Key will unlock it.
+3. There is a Sealed Passage with a stone door that requires the Gemmed Amulet to open.
+4. To make the Gemmed Amulet, you must combine the Crystal Gem with the Silver Amulet using the combine tool.
+
+Think step-by-step about your goals and what actions will help you achieve them.
+Try to explore systematically and remember what you've seen in each room.
+The ultimate goal is to reach the Treasure Chamber.`;
 
 // Define game-specific tools for the agent
 
@@ -41,11 +58,9 @@ export const moveTool = tool({
   }),
   execute: async ({ direction }) => {
     const result = gameEngine.move(direction);
-    // Return the result for the agent to process
     return {
       success: result.success,
       message: result.message,
-      // Include additional context that might be useful for the agent
       ...(result.roomId && { roomId: result.roomId }),
       ...(result.roomName && { roomName: result.roomName })
     };
@@ -143,6 +158,25 @@ export const useItemTool = tool({
   },
 });
 
+// Combine items tool: Combine two items
+export const combineItemsTool = tool({
+  name: 'combine_items',
+  description: 'Combine two items together to create a new item',
+  inputSchema: z.object({
+    item1: z.string().describe('Name of the first item to combine'),
+    item2: z.string().describe('Name of the second item to combine'),
+  }),
+  execute: async ({ item1, item2 }) => {
+    const result = gameEngine.combineItems(item1, item2);
+    return {
+      success: result.success,
+      message: result.message,
+      ...(result.resultItem && { resultItem: result.resultItem }),
+      ...(result.resultItemName && { resultItemName: result.resultItemName })
+    };
+  },
+});
+
 // Help tool: Show available commands
 export const helpTool = tool({
   name: 'help',
@@ -173,6 +207,7 @@ export const agentConfig = {
     inventoryTool,
     lookTool,
     useItemTool,
+    combineItemsTool,
     helpTool
   ],
   stopWhen: [
@@ -188,10 +223,7 @@ export const runAgent = async () => {
 
   const result = openrouter.callModel({
     model: 'nvidia/nemotron-3-super-120b-a12b:free',
-    instructions: `${baseInstructions}
-
-        You MUST use the available tools to interact with the game world to progress and win.
-        Think of each tool as an action you can take in the game.`,
+    instructions: `${baseInstructions}`,
     input: [],
     tools: agentConfig.tools,
     stopWhen: agentConfig.stopWhen
@@ -253,6 +285,6 @@ export const runAgent = async () => {
     console.log(`\nCurrent location: ${state.currentLocation}`);
     console.log('The adventure continues...');
   }
+
+}
   
-  return result;
-};

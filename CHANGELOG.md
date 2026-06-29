@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] - 2026-06-04
+### Added
+- Expanded world from 4 to 8 rooms: Enchanted Garden, Abandoned Ruins, Underground Lake, Sealed Passage
+- 4 new items: Ancient Coin, Crystal Gem, Silver Amulet, Gemmed Amulet (combined)
+- Item combination system: Crystal Gem + Silver Amulet → Gemmed Amulet via `combineItems()` and `combine_items` tool
+- Three linked puzzles: cave illumination (lantern), locked gate (key), stone door (gemmed amulet)
+- Dynamic `stateFlags` system tracking puzzle progress
+- `getEffectiveConnections()` hides puzzle-blocked exits dynamically
+- Puzzle hints in `examine_item` tool results (map, gem, amulet, gemmed amulet)
+- Enhanced `look` output with dynamic state descriptions (lit cave, open gate, open door)
+- Contextual error messages for puzzle-blocked exits ("the way is blocked or impassable")
+- 83 unit tests covering puzzles, combination, navigation, hints, and item interactions
+
 ## [Unreleased]
 ### Fixed
 - Telemetry timing: moved timing to wrap getResponse() instead of callModel() — callModel() is synchronous, so the timer was only measuring ModelResult construction (~17ms), not the actual agent loop
@@ -14,7 +27,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Execution Time unit from milliseconds to seconds for better readability with longer agent runs
 
-## [1.0.1] - 2026-05-21
+## [Unreleased] - 2026-05-21
 ### Fixed
 - Telemetry implementation: reordered tool calls collection to occur before response consumption
 - Code duplication: extracted base instructions constant and use agentConfig.tools instead of recreating tools array
