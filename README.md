@@ -27,38 +27,39 @@ This project demonstrates:
 - Separation of game logic from agent decision-making
 - Integration with open-source LLM models via OpenRouter
 
+
 ## Features
-- 🗺️ Text-based adventure game with explorable world
-- 🎒 Inventory system for collecting and using items
-- 🧩 Simple puzzle mechanics (item-based progression)
+- 🗺️ Expansive world: 8 interconnected rooms with distinct themes and narrative descriptions
+- 🎒 Inventory system for collecting, examining, and using items
+- 🧩 3 sequential puzzles with conditional room access (illumination, locked gate, stone door)
+- 🔗 Item combination system: combine two items to create a new one (Crystal Gem + Silver Amulet → Gemmed Amulet)
 - 🤖 Autonomous LLM-driven agent using OpenRouter SDK
-- 🔧 Tool-based architecture for reliable agent actions
-- 📊 Configurable stop conditions (step count, cost limits)
-- 📝 Detailed logging and journey tracking
-- 📈 Built-in telemetry: Monitor execution time, tool usage, and token consumption
+- 🔧 Tool-based architecture with 8 tools and Zod schema validation
+- 📊 Configurable stop conditions (50 step limit, $0.50 cost ceiling)
+- 📝 Dynamic room descriptions that reflect puzzle state and solved progress
+- 📈 Built-in telemetry: execution time, tool call counts, token consumption, and cost
 - 🏆 Clear win condition and victory celebration
 
 ## Project Structure
 ```
 game-agent/
+├── misc/                   # Planning and specification documents
 ├── src/
-│   ├── game/                 # Game engine and world model
-│   │   ├── engine.ts         # Core game loop and state management
-│   │   ├── world.ts          # Room, item, and world definitions
-│   │   └── test.ts           # Verification tests
-│   ├── agent/                # OpenRouter Agent SDK integration
-│   │   └── agent.ts          # Agent configuration and tool definitions
-│   └── main.ts               # Entry point - connects game and agent
-├── .gitignore                # Git exclusion rules
-├── .env                      # Environment variables (API key)
-├── AGENTS.md                 # Development instructions for agents
-├── IMPLEMENTATION_SPEC.md    # Detailed technical specification
-├── PLAN.md                   # Implementation roadmap
-├── FINAL_SUMMARY.md          # Project completion summary
-├── package.json              # Project dependencies and scripts
-├── package-lock.json         # Dependency lockfile
-├── tsconfig.json             # TypeScript configuration
-└── README.md                 # This file
+│   ├── game/               # Game engine and world model
+│   │   ├── engine.ts       # Core game loop, puzzle state, and action processing
+│   │   ├── world.ts        # Room, item, and world definitions (8 rooms, 7 items)
+│   │   └── test.ts         # 83 verification tests
+│   ├── agent/              # OpenRouter Agent SDK integration
+│   │   └── agent.ts        # Agent configuration, 8 tool definitions, telemetry
+│   └── main.ts             # Entry point - connects game and agent
+├── .gitignore
+├── .env                    # Environment variables (API key, excluded from git)
+├── AGENTS.md               # Development instructions for agentic coding
+├── CHANGELOG.md            # Version history
+├── CLAUDE.md               # Claude Code project guidance
+├── package.json
+├── tsconfig.json
+└── README.md               # This file
 ```
 
 ## Installation
@@ -85,12 +86,13 @@ npx ts-node src/main.ts
 ```
 
 The agent will:
-1. Start in the Forest Clearing
-2. Explore the world by making decisions based on observations
-3. Collect necessary items (map, lantern, key)
-4. Solve the puzzle (use lantern to illuminate cave, use key to unlock passage)
-5. Reach the Treasure Chamber and declare victory
-6. Terminate via success condition or stop limits
+1. Start in the Forest Clearing with the Torn Map
+2. Explore 8 interconnected rooms, discovering items and locations
+3. Collect necessary items (lantern, key, crystal gem, silver amulet, ancient coin)
+4. Combine the Crystal Gem and Silver Amulet to create the Gemmed Amulet
+5. Solve 3 sequential puzzles: illuminate the dark cave, unlock the gate at the underground lake, and open the sealed passage with the gemmed amulet
+6. Reach the Treasure Chamber and declare victory
+7. Terminate via success condition or stop limits
 
 ## How It Works
 ### Game Engine
@@ -105,8 +107,9 @@ The agent will:
   - `takeItemTool`: Collect items from current room
   - `examineItemTool`: Inspect items in inventory or room
   - `inventoryTool`: Show currently carried items
-  - `lookTool`: Describe current location and contents
-  - `useItemTool`: Handle special item effects (lantern illumination, key passage)
+  - `lookTool`: Describe current location and contents (reflects puzzle state dynamically)
+  - `useItemTool`: Handle special item effects (lantern illuminates cave, key unlocks gate, gemmed amulet opens passage)
+  - `combineItemsTool`: Combine two items to create a new item (Crystal Gem + Silver Amulet → Gemmed Amulet)
   - `helpTool`: Display available commands
 - **Agent Configuration**: 
   - System prompt defining goals and available actions
@@ -145,37 +148,35 @@ The agent requires an OpenRouter API key to access LLM models, which should be s
 **Important**: Never commit your `.env` file to version control. The `.gitignore` file already excludes it for security.
 
 ## Example Output
-When the agent successfully completes the adventure:
+When the agent successfully completes the Phase 3 adventure with all puzzles solved:
 
 ```
 Starting Explorer's Quest AI Agent...
 ==================================================
-Congratulations! You have successfully reached the Treasure Chamber, the goal of your adventure.
 
-Here's a summary of your journey:
-1. Started in the Forest Clearing and took the Torn Map.
-2. Moved north to the Dark Cave and took the Brass Lantern.
-3. Lit the lantern to illuminate the cave.
-4. Proceeded west through the illuminated cave to enter the Treasure Chamber.
+Agent Response:
+Congratulations! You have successfully reached the Treasure Chamber and found the lost treasure. Your adventure is complete.
 
-You are now standing in a small chamber filled with glittering treasure - gold coins and precious gems spill from an old chest in the center of the room. Your quest is complete!
+=== Telemetry Report ===
+Execution Time: 330.85s
+Total Tool Calls: 114
+Token Usage: 6,046 input, 51 output (6,097 total)
+Cost: $0.000000
+Tool Usage:
+  look: 24
+  take_item: 18
+  inventory: 9
+  move: 51
+  use_item: 9
+  combine_items: 3
 
 🎉 VICTORY! You have reached the Treasure Chamber! 🎉
 Thanks for playing Explorer's Quest!
 
-=== Telemetry Report ===
-Execution Time: 3.75s
-Total Tool Calls: 6
-Token Usage: 2,452 input, 219 output (2,671 total)
-Cost: $0.000499
-Tool Usage:
-  look: 2
-  move: 2
-  take_item: 1
-  use_item: 1
-
 Agent execution completed.
 ```
+
+The agent explores, backtracks, examines items, and attempts combinations — the 114 tool calls reflect genuine gameplay, not inefficiency. The theoretical minimum is ~15 tools.
 
 ## Technical Details
 ### OpenRouter SDK Usage
@@ -195,27 +196,26 @@ Agent execution completed.
 - **Automatic Reporting**: Telemetry displayed after each agent run
 
 ### Game Mechanics
-- **World**: 4 interconnected rooms with distinct descriptions
-- **Items**: 3 collectible items with specific properties and uses
+- **World**: 8 interconnected rooms with distinct themes and narrative descriptions:
+  - Forest Clearing (start), Dark Cave, Old Cabin, Enchanted Garden, Abandoned Ruins, Underground Lake, Sealed Passage, Treasure Chamber
+- **Items**: 7 items (including 1 combined):
+  - Torn Map, Brass Lantern, Rusty Key, Ancient Coin, Crystal Gem, Silver Amulet, Gemmed Amulet (combined)
 - **Actions**: 
   - Movement: `go [direction]` (north, south, east, west)
-  - Interaction: `take [item]`, `examine [item]`, `use [item]`
+  - Interaction: `take [item]`, `examine [item]`, `use [item]`, `combine [item1] [item2]`
   - Information: `inventory`, `look`, `help`
-- **Puzzle**: Lantern required to see in cave, key required to unlock final passage
+- **Puzzle Chain (3 sequential puzzles)**:
+  1. **Cave Illumination**: Use the Brass Lantern in the Dark Cave to reveal the western passage
+  2. **Locked Gate**: Use the Rusty Key at the Underground Lake to unlock the northern gate
+  3. **Sealed Passage**: Use the Gemmed Amulet at the Sealed Passage to open the stone door
+- **Item Combination**: Crystal Gem (Ruins) + Silver Amulet (Underground Lake) → Gemmed Amulet (via `combine` tool)
+- **Dynamic Connections**: Puzzle-blocked exits are hidden from `look` until solved, and give specific puzzle-hint error messages on attempted traversal
 - **Win Condition**: Reaching the Treasure Chamber room
 
 ## Future Enhancements
 Planned improvements for future versions:
 
-### Phase 3: Enhanced Gameplay
-- Expand to 6-8 interconnected rooms with varied themes
-- Add combination puzzles requiring multiple items
-- Implement narrative elements, backstory, and character dialogue
-- Create specialized tools for complex puzzle solving
-- Enhance room descriptions with contextual hints and storytelling
-- Add multiple win conditions or branching storylines
-
-### Phase 4: Agent Optimization
+### Phase 4: Agent Optimization (Next)
 - Refine system prompt based on observed behaviors for better decision-making
 - Implement custom stop conditions (e.g., stop when win condition reached)
 - Add telemetry and debugging capabilities (step count, cost, time tracking)
